@@ -26,11 +26,18 @@ def send_transcript():
         for entry in transcript_entries:
             role = entry.get("role", "")
             message = entry.get("message", "")
+            time_secs = entry.get("time_in_call_secs", 0)
+
+            # Zet seconden om naar minuten:seconden formaat
+            minutes = time_secs // 60
+            seconds = time_secs % 60
+            timestamp = f"[{minutes:02d}:{seconds:02d}]"
+
             if message:
                 if role == "user":
-                    conversation_lines.append(f"Gebruiker: {message}")
+                    conversation_lines.append(f"{timestamp} Gebruiker: {message}")
                 elif role == "agent":
-                    conversation_lines.append(f"Agent: {message}")
+                    conversation_lines.append(f"{timestamp} Agent: {message}")
     except Exception as e:
         print(f"🚫 Fout bij uitlezen transcript: {e}")
         return "Invalid transcript data", 400
@@ -57,7 +64,7 @@ def send_transcript():
     context = ssl.create_default_context()
     try:
         with smtplib.SMTP_SSL('mail.contactons.nl', 465, context=context) as server:
-            server.login('support@contactons.nl', 'SuPP#2123(CO')
+            server.login('support@contactons.nl', 'SuPP#2123(CO'
             server.send_message(msg)
         print("✅ E-mail succesvol verzonden.")
         return 'Transcript verstuurd', 200
