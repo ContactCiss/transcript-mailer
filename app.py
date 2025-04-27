@@ -1,22 +1,37 @@
-from flask import Flask, request
+from flask import Flask, request, abort
 import smtplib
 from email.mime.text import MIMEText
 import ssl
+import hmac
+import hashlib
 
 app = Flask(__name__)
 
+# Jouw HMAC-secret
+HMAC_SECRET = b"wsec_a5adb70ff267065fc290c5b42b0fee583bbe448107fa4d6e26074610e7b1ca5a"
+
 @app.route('/transcript', methods=['POST'])
 def send_transcript():
+    # Verifieer HMAC-handtekening
+    signature = request.headers.get('X-Webhook-Signature', '')
+    body = request.get_data()
+
+    expected_signature = hmac.new(HMAC_SECRET, body, hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        print("Ongeldige HMAC-signature")
+        abort(401, description="Invalid signature")
+
+    # Verwerk de inkomende data
     data = request.json
     transcript = data.get('transcript', 'Geen transcript ontvangen.')
 
-    # Maak de e-mail
+    # Stel de e-mail samen
     msg = MIMEText(transcript)
     msg['Subject'] = 'Nieuwe transcriptie van AI gesprek'
     msg['From'] = 'support@contactons.nl'
     msg['To'] = 'support@contactons.nl'
 
-    # Verstuur de e-mail via je eigen SMTP server met SSL
     context = ssl.create_default_context()
     try:
         with smtplib.SMTP_SSL('mail.contactons.nl', 465, context=context) as server:
