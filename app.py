@@ -64,7 +64,7 @@ def send_transcript():
     context = ssl.create_default_context()
     try:
         with smtplib.SMTP_SSL('mail.contactons.nl', 465, context=context) as server:
-            server.login('support@contactons.nl', 'SuPP#2123(CO'
+            server.login('support@contactons.nl', 'SuPP#2123(CO')
             server.send_message(msg)
         print("✅ E-mail succesvol verzonden.")
         return 'Transcript verstuurd', 200
