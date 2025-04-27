@@ -16,10 +16,16 @@ def send_transcript():
     signature = request.headers.get('X-Webhook-Signature', '')
     body = request.get_data()
 
+    print("\n📩 Ontvangen raw body:")
+    print(body.decode('utf-8'))  # Logt exact wat binnenkomt
+
     expected_signature = hmac.new(HMAC_SECRET, body, hashlib.sha256).hexdigest()
 
+    print(f"✅ Verwachte HMAC: {expected_signature}")
+    print(f"✅ Ontvangen HMAC: {signature}")
+
     if not hmac.compare_digest(expected_signature, signature):
-        print("Ongeldige HMAC-signature")
+        print("🚫 Ongeldige HMAC-signature! Webhook geweigerd.")
         abort(401, description="Invalid signature")
 
     # Verwerk de inkomende data
@@ -53,4 +59,5 @@ def send_transcript():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
 
