@@ -19,30 +19,32 @@ def send_transcript():
         print(f"🚫 Fout bij JSON parsing: {e}")
         return "Invalid JSON", 400
 
-    # Extract transcript messages
-    user_messages = []
+    # Extract all messages (user + agent)
+    conversation_lines = []
     try:
         transcript_entries = data["data"]["transcript"]
         for entry in transcript_entries:
-            if entry["role"] == "user":
-                message = entry.get("message", "")
-                if message:
-                    user_messages.append(message)
+            role = entry.get("role", "")
+            message = entry.get("message", "")
+            if message:
+                if role == "user":
+                    conversation_lines.append(f"Gebruiker: {message}")
+                elif role == "agent":
+                    conversation_lines.append(f"Agent: {message}")
     except Exception as e:
         print(f"🚫 Fout bij uitlezen transcript: {e}")
         return "Invalid transcript data", 400
 
-    if not user_messages:
-        email_content = "Geen gebruikersberichten gevonden in deze call."
+    if not conversation_lines:
+        email_content = "Geen berichten gevonden in deze call."
     else:
-        email_content = "\n\n".join(user_messages)
+        email_content = "<br>".join(conversation_lines)
 
     html_content = f"""
     <html>
         <body>
             <h2>Nieuwe AI-gesprek binnengekomen!</h2>
-            <p><strong>Gebruikersberichten:</strong></p>
-            <p>{email_content.replace(chr(10), '<br>')}</p>
+            <p>{email_content}</p>
         </body>
     </html>
     """
