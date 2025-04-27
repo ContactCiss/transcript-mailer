@@ -25,9 +25,24 @@ def send_transcript():
     # Verwerk de inkomende data
     data = request.json
     transcript = data.get('transcript', 'Geen transcript ontvangen.')
+    naam = data.get('naam', 'Onbekend')
+    telefoonnummer = data.get('telefoonnummer', 'Onbekend')
+    email = data.get('email', 'Onbekend')
 
-    # Stel de e-mail samen
-    msg = MIMEText(transcript)
+    # Stel de HTML-email samen
+    html_content = f"""
+    <html>
+        <body>
+            <h2>Nieuwe AI-gesprek binnengekomen!</h2>
+            <p><strong>Naam:</strong> {naam}</p>
+            <p><strong>Telefoonnummer:</strong> {telefoonnummer}</p>
+            <p><strong>E-mailadres:</strong> {email}</p>
+            <p><strong>Bericht:</strong><br>{transcript}</p>
+        </body>
+    </html>
+    """
+
+    msg = MIMEText(html_content, 'html')
     msg['Subject'] = 'Nieuwe transcriptie van AI gesprek'
     msg['From'] = 'support@contactons.nl'
     msg['To'] = 'support@contactons.nl'
