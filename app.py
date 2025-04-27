@@ -7,8 +7,8 @@ import hashlib
 
 app = Flask(__name__)
 
-# Jouw HMAC-secret
-HMAC_SECRET = b"wsec_a5adb70ff267065fc290c5b42b0fee583bbe448107fa4d6e26074610e7b1ca5a"
+# Nieuwe HMAC-secret
+HMAC_SECRET = b"wsec_733a441c67f6b5ac1f042e922472a07a3aaf9ce9349bc3d97b156f798f708bf6"
 
 @app.route('/transcript', methods=['POST'])
 def send_transcript():
@@ -25,18 +25,12 @@ def send_transcript():
     # Verwerk de inkomende data
     data = request.json
     transcript = data.get('transcript', 'Geen transcript ontvangen.')
-    naam = data.get('naam', 'Onbekend')
-    telefoonnummer = data.get('telefoonnummer', 'Onbekend')
-    email = data.get('email', 'Onbekend')
 
-    # Stel de HTML-email samen
+    # Stel de e-mail samen
     html_content = f"""
     <html>
         <body>
             <h2>Nieuwe AI-gesprek binnengekomen!</h2>
-            <p><strong>Naam:</strong> {naam}</p>
-            <p><strong>Telefoonnummer:</strong> {telefoonnummer}</p>
-            <p><strong>E-mailadres:</strong> {email}</p>
             <p><strong>Bericht:</strong><br>{transcript}</p>
         </body>
     </html>
@@ -59,3 +53,4 @@ def send_transcript():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
