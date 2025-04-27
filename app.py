@@ -1,51 +1,48 @@
-from flask import Flask, request, abort
+from flask import Flask, request
 import smtplib
 from email.mime.text import MIMEText
 import ssl
-import hmac
-import hashlib
 
 app = Flask(__name__)
-
-# HMAC secret
-HMAC_SECRET = b"wsec_b709cc6e1b0a46d356fb3663144fc7c6c74f4e7f6592640643eac91b158af30d"
 
 @app.route('/transcript', methods=['POST'])
 def send_transcript():
     print("\n🛬 Webhook POST ontvangen!")
 
-    signature = request.headers.get('X-Webhook-Signature', '')
     body = request.get_data()
-
-    print(f"📩 Raw body (bytes): {body}")
     print(f"📩 Raw body (decoded): {body.decode('utf-8', errors='replace')}")
-    print(f"🧩 Ontvangen X-Webhook-Signature header: {signature}")
 
-    expected_signature = hmac.new(HMAC_SECRET, body, hashlib.sha256).hexdigest()
-
-    print(f"✅ Verwachte HMAC: {expected_signature}")
-
-    if not hmac.compare_digest(expected_signature, signature):
-        print("🚫 Ongeldige HMAC-signature! Webhook geweigerd.")
-        abort(401, description="Invalid signature")
-
-    print("✅ HMAC signature geldig. E-mail wordt verstuurd.")
-
-    # JSON parsen
     try:
         data = request.get_json()
         print(f"📦 JSON payload: {data}")
     except Exception as e:
         print(f"🚫 Fout bij JSON parsing: {e}")
-        abort(400, description="Invalid JSON")
+        return "Invalid JSON", 400
 
-    transcript = data.get('transcript', 'Geen transcript ontvangen.')
+    # Extract transcript messages
+    user_messages = []
+    try:
+        transcript_entries = data["data"]["transcript"]
+        for entry in transcript_entries:
+            if entry["role"] == "user":
+                message = entry.get("message", "")
+                if message:
+                    user_messages.append(message)
+    except Exception as e:
+        print(f"🚫 Fout bij uitlezen transcript: {e}")
+        return "Invalid transcript data", 400
+
+    if not user_messages:
+        email_content = "Geen gebruikersberichten gevonden in deze call."
+    else:
+        email_content = "\n\n".join(user_messages)
 
     html_content = f"""
     <html>
         <body>
             <h2>Nieuwe AI-gesprek binnengekomen!</h2>
-            <p><strong>Bericht:</strong><br>{transcript}</p>
+            <p><strong>Gebruikersberichten:</strong></p>
+            <p>{email_content.replace(chr(10), '<br>')}</p>
         </body>
     </html>
     """
@@ -60,6 +57,7 @@ def send_transcript():
         with smtplib.SMTP_SSL('mail.contactons.nl', 465, context=context) as server:
             server.login('support@contactons.nl', 'SuPP#2123(CO')
             server.send_message(msg)
+        print("✅ E-mail succesvol verzonden.")
         return 'Transcript verstuurd', 200
     except Exception as e:
         print(f"🚫 Fout bij verzenden: {e}")
