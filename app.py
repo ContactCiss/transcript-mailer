@@ -8,7 +8,7 @@ import hashlib
 app = Flask(__name__)
 
 # HMAC secret
-HMAC_SECRET = b"wsec_733a441c67f6b5ac1f042e922472a07a3aaf9ce9349bc3d97b156f798f708bf6"
+HMAC_SECRET = b"wsec_b709cc6e1b0a46d356fb3663144fc7c6c74f4e7f6592640643eac91b158af30d"
 
 @app.route('/transcript', methods=['POST'])
 def send_transcript():
