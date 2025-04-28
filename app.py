@@ -1,76 +1,41 @@
 from flask import Flask, request
-import smtplib
-from email.mime.text import MIMEText
-import ssl
+from flask_mail import Mail, Message
+import os
 
 app = Flask(__name__)
 
-@app.route('/transcript', methods=['POST'])
-def send_transcript():
-    print("\n🛬 Webhook POST ontvangen!")
+# Configuratie voor Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
-    body = request.get_data()
-    print(f"📩 Raw body (decoded): {body.decode('utf-8', errors='replace')}")
+mail = Mail(app)
 
-    try:
-        data = request.get_json()
-        print(f"📦 JSON payload: {data}")
-    except Exception as e:
-        print(f"🚫 Fout bij JSON parsing: {e}")
-        return "Invalid JSON", 400
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.get_json()
+    if not data:
+        return "No JSON received", 400
 
-    # Extract all messages (user + agent)
-    conversation_lines = []
-    try:
-        transcript_entries = data["data"]["transcript"]
-        for entry in transcript_entries:
-            role = entry.get("role", "")
-            message = entry.get("message", "")
-            time_secs = entry.get("time_in_call_secs", 0)
+    # Extract relevant information
+    transcription = data.get('text', '')
+    phone_number = data.get('phone_number', 'Onbekend nummer')
+    
+    # E-mail verzenden
+    msg = Message('Nieuwe Transcriptie Ontvangen',
+                  recipients=[os.environ.get('MAIL_RECIPIENT')])
+    msg.body = f'Transcriptie:\n{transcription}\n\nBeller: {phone_number}'
+    mail.send(msg)
 
-            # Zet seconden om naar minuten:seconden formaat
-            minutes = time_secs // 60
-            seconds = time_secs % 60
-            timestamp = f"[{minutes:02d}:{seconds:02d}]"
+    return "Transcriptie ontvangen en e-mail verzonden.", 200
 
-            if message:
-                if role == "user":
-                    conversation_lines.append(f"{timestamp} Gebruiker: {message}")
-                elif role == "agent":
-                    conversation_lines.append(f"{timestamp} Agent: {message}")
-    except Exception as e:
-        print(f"🚫 Fout bij uitlezen transcript: {e}")
-        return "Invalid transcript data", 400
+# Health check route
+@app.route('/', methods=['GET'])
+def health():
+    return "Server is running!", 200
 
-    if not conversation_lines:
-        email_content = "Geen berichten gevonden in deze call."
-    else:
-        email_content = "<br>".join(conversation_lines)
-
-    html_content = f"""
-    <html>
-        <body>
-            <h2>Nieuwe AI-gesprek binnengekomen!</h2>
-            <p>{email_content}</p>
-        </body>
-    </html>
-    """
-
-    msg = MIMEText(html_content, 'html')
-    msg['Subject'] = 'Nieuwe transcriptie van AI gesprek'
-    msg['From'] = 'support@contactons.nl'
-    msg['To'] = 'support@contactons.nl'
-
-    context = ssl.create_default_context()
-    try:
-        with smtplib.SMTP_SSL('mail.contactons.nl', 465, context=context) as server:
-            server.login('support@contactons.nl', 'SuPP#2123(CO')
-            server.send_message(msg)
-        print("✅ E-mail succesvol verzonden.")
-        return 'Transcript verstuurd', 200
-    except Exception as e:
-        print(f"🚫 Fout bij verzenden: {e}")
-        return f"Fout: {e}", 500
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
