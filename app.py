@@ -14,7 +14,7 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
 mail = Mail(app)
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/transcript', methods=['POST'])
 def webhook():
     data = request.get_json()
     if not data:
